@@ -11,14 +11,14 @@
 
 #define SQUARE(X) ((X) * (X))
 
-class EquvalenceClass
+class EquivalenceClass
 {
 public:
-	EquvalenceClass(std::string attributeValues);
+	EquivalenceClass();
 	bool Included(int index);
-	bool Add(int index, std::string attributeValues);
+	int Add(int index, std::string class_value);
+	double Ap(std::string class_value);
 private:
-	std::string _attributeValues;
 	std::unordered_map<int, bool> _inclusionMap;
 	int _totalCount;
 	std::unordered_map<std::string, int> _classCounts;

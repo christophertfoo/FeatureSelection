@@ -1,5 +1,42 @@
 #include "MVM.h"
 
+EquivalenceClass::EquivalenceClass()
+{
+	this->_totalCount = 0;
+}
+
+bool EquivalenceClass::Included(int index)
+{
+	bool result = false;
+	if(this->_inclusionMap.count(index))
+	{
+		result = true;
+	}
+	return result;
+}
+
+int EquivalenceClass::Add(int index, std::string class_value)
+{
+	this->_inclusionMap[index] = true;
+	if(this->_classCounts.count(class_value))
+	{
+		this->_classCounts[class_value]++;
+	}
+	else 
+	{
+		this->_classCounts[class_value] = 1;
+	}
+	this->_totalCount++;
+
+	return 0;
+}
+
+double EquivalenceClass::Ap(std::string class_value)
+{
+	return (this->_classCounts.count(class_value) ? this->_classCounts[class_value] : 0)/ ((double) this->_totalCount);
+}
+
+
 int GetAttributes(DATA_SET & data, std::list<std::string> & attributes, std::string class_col)
 {
 	for(auto it = data.begin(); it != data.end(); ++it)
@@ -29,78 +66,63 @@ int FindClasses(DATA_SET & data, std::string class_column, std::vector<std::stri
 	return 0;
 }
 
-int FindEquivalences(DATA_SET & data, std::vector<std::pair<std::string, double>> & counts, std::string class_column, std::vector<std::string> & attributes) 
+int FindEquivalences(DATA_SET & data, std::vector<std::pair<std::string, EquivalenceClass *>> & equivalence_assoc, std::unordered_map<std::string, EquivalenceClass> & equivalences, std::string class_column, std::vector<std::string> & attributes) 
 {
 	int numrows = data[class_column].size();
-	int i, j;
-	std::pair<std::string, double> dummy;
+	int i;
+	std::pair<std::string, EquivalenceClass *> dummy;
 	if(!attributes.empty())
 	{
 		for(i = 0; i < numrows; i++)
 		{
-			int count_equivalent = 0;
-			int count_same = 0;
+
 			std::string class_value = data[class_column][i];
-			for(j = 0; j < numrows; j++)
+			std::string attribute_string;
+
+			for(auto it = attributes.begin(); it != attributes.end(); ++it)
 			{
-
-				bool equivalent = true;
-
-				for(auto it = attributes.begin(); it != attributes.end(); ++it)
-				{
-					if(data[*it][j] != data[*it][i])
-					{
-						equivalent = false;
-						break;
-					}
-				}
-
-				if(equivalent)
-				{
-					count_equivalent++;
-
-					if(data[class_column][j] == class_value)
-					{
-						count_same++;
-					}
-				}
+				attribute_string += data[*it][i];
 			}
+			EquivalenceClass & ec = equivalences[attribute_string];
+			ec.Add(i, class_value);
 			dummy.first = class_value;
-			dummy.second = count_same / ((double) count_equivalent);
-			counts.push_back(dummy);
+			dummy.second = &ec;
+			equivalence_assoc.push_back(dummy);
 		}
 	}
 	return 0;
 }
 
-double Sigma_p(DATA_SET & data, std::vector<std::pair<std::string, double>> & counts, std::string class_value, int num_classes)
+double Sigma_p(DATA_SET & data, std::vector<std::pair<std::string, EquivalenceClass *>> & equivalences, std::string class_value, int num_classes)
 {
 	int i = 0;
 	double sum_same = 0;
 	double sum_different = 0;
 
-	for(auto it = counts.begin(); it != counts.end(); ++it)
+	for(auto it = equivalences.begin(); it != equivalences.end(); ++it)
 	{
-		if(it->first == class_value)
+		std::string & current_class = it->first;
+		EquivalenceClass & ec = *(it->second);
+		if(current_class == class_value)
 		{
-			sum_same += SQUARE(1 - it->second);
+			sum_same += SQUARE(1 - ec.Ap(class_value));
 		}
 		else 
 		{
-			sum_different += SQUARE(it->second);
+			sum_different += SQUARE(ec.Ap(class_value));
 		}
 	}
 
-	return(sqrt((sum_same + sum_different) / counts.size()));
+	return(sqrt((sum_same + sum_different) / equivalences.size()));
 }
 
-double Sigma(DATA_SET & data, std::vector<std::pair<std::string, double>> & counts, std::vector<std::string> classes)
+double Sigma(DATA_SET & data, std::vector<std::pair<std::string, EquivalenceClass *>> & equivalences, std::vector<std::string> classes)
 {
 	int num_classes = classes.size();
 	double sum = 0;
 	for(auto it = classes.begin(); it != classes.end(); ++it)
 	{
-		sum += Sigma_p(data, counts, *it, num_classes);
+		sum += Sigma_p(data, equivalences, *it, num_classes);
 	}
 	return(sum / num_classes);
 }
@@ -109,16 +131,15 @@ int MVM(DATA_SET & data, double max_threshold, std::string class_column, std::ve
 {
 	std::list<std::string> attributes;
 	std::vector<std::string> red_copy;
-	std::vector<std::pair<std::string, double>> counts_red;
-	std::vector<std::pair<std::string, double>> counts_red_copy;
+	std::vector<std::pair<std::string, EquivalenceClass *>> equivalence_assoc;
+	std::unordered_map<std::string, EquivalenceClass> equivalences;
 	std::vector<std::string> classes;
 	std::vector<double> sigmas;
 
 	GetAttributes(data, attributes, class_column);
 	FindClasses(data, class_column, classes);
 
-	counts_red.reserve(data[class_column].size());
-	counts_red_copy.reserve(data[class_column].size());
+	equivalence_assoc.reserve(data[class_column].size());
 
 	while(!attributes.empty())
 	{
@@ -140,8 +161,8 @@ int MVM(DATA_SET & data, double max_threshold, std::string class_column, std::ve
 				sigma_old = sigmas.back();
 			}
 
-			FindEquivalences(data, counts_red_copy, class_column, red_copy);
-			sigma_new = Sigma(data, counts_red_copy, classes);
+			FindEquivalences(data, equivalence_assoc, equivalences, class_column, red_copy);
+			sigma_new = Sigma(data, equivalence_assoc, classes);
 
 			double result = sigma_new - sigma_old;
 			if(result < min_value)
@@ -150,8 +171,8 @@ int MVM(DATA_SET & data, double max_threshold, std::string class_column, std::ve
 				min_col = *attr_it;
 			}
 
-			counts_red.clear();
-			counts_red_copy.clear();
+			equivalence_assoc.clear();
+			equivalences.clear();
 			red_copy.pop_back();
 		}
 
