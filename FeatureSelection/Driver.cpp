@@ -19,7 +19,7 @@ int main(void)
 	std::cout << std::endl;
 
 	std::cout << "Car - MVM" << std::endl;
-	RunTest("car.csv", MVM_TYPE, 0.5);
+	RunTest("car.csv", MVM_TYPE, 0.2);
 	std::cout << std::endl;
 
 	std::cout << "Mushroom - FCBF" << std::endl;
@@ -27,7 +27,7 @@ int main(void)
 	std::cout << std::endl;
 
 	std::cout << "Mushroom - MVM" << std::endl;
-	RunTest("mushroom.csv", MVM_TYPE, 0.5);
+	RunTest("mushroom.csv", MVM_TYPE, 0.2);
 	std::cout << std::endl;
 
 	std::cin.get();

@@ -43,33 +43,30 @@ int FindEquivalences(DATA_SET & data, std::vector<std::pair<std::string, double>
 			std::string class_value = data[class_column][i];
 			for(j = 0; j < numrows; j++)
 			{
-				if(i != j)
+
+				bool equivalent = true;
+
+				for(auto it = attributes.begin(); it != attributes.end(); ++it)
 				{
-
-					bool equivalent = true;
-
-					for(auto it = attributes.begin(); it != attributes.end(); ++it)
+					if(data[*it][j] != data[*it][i])
 					{
-						if(data[*it][j] != data[*it][i])
-						{
-							equivalent = false;
-							break;
-						}
+						equivalent = false;
+						break;
 					}
+				}
 
-					if(equivalent)
+				if(equivalent)
+				{
+					count_equivalent++;
+
+					if(data[class_column][j] == class_value)
 					{
-						count_equivalent++;
-
-						if(data[class_column][j] == class_value)
-						{
-							count_same++;
-						}
+						count_same++;
 					}
 				}
 			}
 			dummy.first = class_value;
-			dummy.second = count_equivalent == 0 ? 1 : count_same / ((double) count_equivalent);
+			dummy.second = count_same / ((double) count_equivalent);
 			counts.push_back(dummy);
 		}
 	}
@@ -94,7 +91,7 @@ double Sigma_p(DATA_SET & data, std::vector<std::pair<std::string, double>> & co
 		}
 	}
 
-	return(sqrt((sum_same + sum_different) / num_classes));
+	return(sqrt((sum_same + sum_different) / counts.size()));
 }
 
 double Sigma(DATA_SET & data, std::vector<std::pair<std::string, double>> & counts, std::vector<std::string> classes)
