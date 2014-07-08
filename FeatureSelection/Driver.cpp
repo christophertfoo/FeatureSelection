@@ -12,26 +12,19 @@
 
 int RunTest(std::string file_name, int type, double threshold);
 
+int RunTestSet(std::string set_name, std::string csv_file, double fcbf_threshold, double mvm_threshold);
+
 int main(void)
 {
-	std::cout << "Car - FCBF" << std::endl;
-	RunTest("car.csv", FCBF_TYPE, 0.2);
-	std::cout << std::endl;
+	//RunTestSet("Car", "car.csv", 0.2, 0.05);
+	//RunTestSet("Mushroom", "mushroom.csv", 0.2, 0.0475);
+	//RunTestSet("Soybean", "soybean-large.csv", 0.2, 0.0335);
+	//RunTestSet("Connect-4", "connect-4.csv", 0.01, 0.007);
 
-	std::cout << "Car - MVM" << std::endl;
-	RunTest("car.csv", MVM_TYPE, 0.2);
-	std::cout << std::endl;
-
-	std::cout << "Mushroom - FCBF" << std::endl;
-	RunTest("mushroom.csv", FCBF_TYPE, 0.2);
-	std::cout << std::endl;
-
-	std::cout << "Mushroom - MVM" << std::endl;
-	RunTest("mushroom.csv", MVM_TYPE, 0.2);
-	std::cout << std::endl;
-
-	std::cin.get();
-
+	RunTestSet("Car", "car.csv", 0, 1);
+	RunTestSet("Mushroom", "mushroom.csv", 0, 1);
+	RunTestSet("Soybean", "soybean-large.csv", 0, 1);
+	RunTestSet("Connect-4", "connect-4.csv", 0, 1);
 	return 0;
 }
 
@@ -64,5 +57,17 @@ int RunTest(std::string file_name, int type, double threshold)
 	}
 
 	std::cout<<"Duration: "<< duration << " s" << std::endl;
+	return 0;
+}
+
+int RunTestSet(std::string set_name, std::string csv_file, double fcbf_threshold, double mvm_threshold) {
+	std::cout << set_name << " - FCBF" << std::endl;
+	RunTest(csv_file, FCBF_TYPE, fcbf_threshold);
+	std::cout << std::endl;
+
+	std::cout << set_name << " - MVM" << std::endl;
+	RunTest(csv_file, MVM_TYPE, mvm_threshold);
+	std::cout << std::endl;
+
 	return 0;
 }
